@@ -41,11 +41,13 @@ type DockProps = {
   rolling: boolean;
   diceLabel: string;
   canRoll: boolean;
+  canEndTurn: boolean;
   rollStatus: string | null;
   rollVariant: "you" | "bad" | "muted";
   canUndo: boolean;
   hint: ReactNode;
   onRoll: () => void;
+  onEndTurn: () => void;
   onUndo: () => void;
 };
 
@@ -58,11 +60,13 @@ export function Dock({
   rolling,
   diceLabel,
   canRoll,
+  canEndTurn,
   rollStatus,
   rollVariant,
   canUndo,
   hint,
   onRoll,
+  onEndTurn,
   onUndo,
 }: DockProps) {
   return (
@@ -107,6 +111,11 @@ export function Dock({
           <button type="button" className="btn primary attn" onClick={onRoll}>
             <RollIcon className="ic" />
             Roll
+          </button>
+        ) : canEndTurn ? (
+          <button type="button" className="btn primary" onClick={onEndTurn}>
+            <CheckIcon className="ic" />
+            End turn
           </button>
         ) : (
           <div className={`btn status ${rollVariant}`} role="status">
