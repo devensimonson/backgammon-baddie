@@ -1825,6 +1825,239 @@ footer a:focus-visible,
 }
 
 /* ---------- mobile play ---------- */
+/* Short landscape viewports need a coordinated composition even when their
+   width looks desktop-sized (for example iPad Safari with browser chrome).
+   Keep the board width-driven for WebKit, but budget that width from the
+   visual viewport's available block size so neither the board nor dock can
+   make the page taller than the screen. */
+@media (orientation: landscape) and (max-width: 1366px) and (max-height: 700px) {
+  html,
+  body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    --safe-top: max(6px, env(safe-area-inset-top));
+    --safe-right: max(8px, env(safe-area-inset-right));
+    --safe-bottom: max(6px, env(safe-area-inset-bottom));
+    --safe-left: max(8px, env(safe-area-inset-left));
+    --compact-gap: 8px;
+    --compact-topbar: 44px;
+    --compact-status: 54px;
+    --compact-rail: clamp(220px, 25vw, 300px);
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+  }
+
+  .wrap {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    min-width: 0;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--compact-rail);
+    grid-template-rows: var(--compact-topbar) var(--compact-status) minmax(0, 1fr);
+    gap: var(--compact-gap) 10px;
+    touch-action: manipulation;
+  }
+
+  .wrap > *,
+  .topbar,
+  .turnbar,
+  .board-wrap,
+  .board-stage,
+  .wrap > .rise.d4:not(footer),
+  .dock,
+  .players,
+  .actions,
+  .hint {
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .rise {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .topbar {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+  .brand-text .kicker { display: none; }
+  .brand-text h1 { margin: 0; font-size: clamp(17px, 2vw, 23px); }
+  .top-right { margin-left: auto; gap: 7px; }
+  .icon-btn,
+  .top-btn,
+  .record { min-height: 44px; height: 44px; }
+  .top-btn { padding-inline: 12px; }
+  .record { padding-block: 3px; }
+  .rec-cell .n { font-size: 16px; }
+  .rec-cell .l { font-size: 8px; }
+
+  .turnbar {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: grid;
+    grid-template-columns: minmax(140px, 0.32fr) minmax(0, 1fr);
+    gap: 8px;
+  }
+  .turn-pill {
+    min-height: 0;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  .say-bar {
+    min-height: 0;
+    padding: 6px 10px;
+  }
+  .avatar { width: 34px; height: 34px; }
+  .avatar svg { width: 21px; height: 21px; }
+  .say { min-width: 0; }
+  .say .who { font-size: 8px; }
+  .say .line-row { min-width: 0; }
+  .say .line {
+    display: -webkit-box;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 12px;
+    line-height: 1.25;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  .mode-tag { display: none; }
+
+  .board-wrap {
+    grid-column: 1;
+    grid-row: 3;
+    display: flex;
+  }
+  .board-stage {
+    width: min(
+      100%,
+      calc(
+        (100dvh - var(--safe-top) - var(--safe-bottom) - var(--compact-topbar) - var(--compact-status) -
+              (var(--compact-gap) * 2)) * 1.6
+      )
+    );
+    max-width: 100%;
+    max-height: 100%;
+    aspect-ratio: 16 / 10;
+  }
+  /* Expand only interactive source points, leaving the visible point grid and
+     board proportions untouched. The pseudo-element belongs to its source
+     point's stacking context so neighbouring non-interactive points never
+     intercept the coarse-pointer target. */
+  .point[role="button"] {
+    isolation: isolate;
+    z-index: 3;
+  }
+  .point[role="button"]::after {
+    content: "";
+    position: absolute;
+    z-index: 4;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 44px;
+    transform: translateX(-50%);
+  }
+  @supports not (height: 100dvh) {
+    .board-stage {
+      width: min(
+        100%,
+        calc(
+          (100vh - var(--safe-top) - var(--safe-bottom) - var(--compact-topbar) - var(--compact-status) -
+                (var(--compact-gap) * 2)) * 1.6
+        )
+      );
+    }
+  }
+
+  .wrap > .rise.d4:not(footer) {
+    grid-column: 2;
+    grid-row: 3;
+    overflow: hidden;
+  }
+  .dock {
+    height: 100%;
+    padding: 10px;
+    gap: 8px;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+  .players {
+    width: 100%;
+    flex: none;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 6px;
+  }
+  .pcard { min-width: 0; min-height: 44px; padding: 7px; gap: 6px; }
+  .pcard .tag,
+  .pcard .badge { display: none; }
+  .pcard .nm { font-size: 9px; }
+  .pcard .dot { width: 24px; height: 24px; }
+  .dice-wrap { height: auto; min-height: 46px; }
+  .die { width: 42px; height: 42px; }
+  .actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .btn { width: 100%; min-height: 44px; padding: 9px 10px; font-size: 12px; }
+  .hint {
+    width: 100%;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 7px;
+    font-size: 10px;
+    line-height: 1.3;
+  }
+  .hint svg { display: none; }
+  footer { display: none; }
+
+  .overlay {
+    position: fixed;
+    inset: 0;
+    border-radius: 0;
+    padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+    overflow: hidden;
+  }
+  .start-panel,
+  .result {
+    width: min(440px, 94vw);
+    max-height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .pop {
+    position: fixed;
+    inset: 0;
+    width: auto;
+    max-height: 100dvh;
+    overflow-y: auto;
+    display: grid;
+    place-content: center;
+    border-radius: 0;
+    padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+    background: rgba(20, 16, 40, .92);
+  }
+}
+
 /* Phone landscape is a focused two-column game surface. The controller and
    component tree stay shared with desktop; only composition changes. */
 @media (orientation: landscape) and (max-width: 899px) and (max-height: 540px) {
@@ -1836,23 +2069,15 @@ footer a:focus-visible,
   }
 
   body {
-    min-height: 100vh;
-    min-height: 100dvh;
-    padding-top: max(6px, env(safe-area-inset-top));
-    padding-right: max(8px, env(safe-area-inset-right));
-    padding-bottom: max(6px, env(safe-area-inset-bottom));
-    padding-left: max(8px, env(safe-area-inset-left));
+    --compact-gap: 6px;
+    --compact-status: 0px;
+    --compact-rail: clamp(156px, 22vw, 184px);
   }
 
   .wrap {
-    max-width: none;
-    height: calc(100vh - max(6px, env(safe-area-inset-top)) - max(6px, env(safe-area-inset-bottom)));
-    height: calc(100dvh - max(6px, env(safe-area-inset-top)) - max(6px, env(safe-area-inset-bottom)));
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 168px;
+    grid-template-columns: minmax(0, 1fr) var(--compact-rail);
     grid-template-rows: 40px auto minmax(0, 1fr);
     gap: 6px 7px;
-    touch-action: manipulation;
   }
   .rise {
     animation: none;
@@ -1916,7 +2141,7 @@ footer a:focus-visible,
     transform: none;
   }
   .board-stage {
-    width: min(100%, calc((100dvh - 52px) * 1.6));
+    width: min(100%, calc((100dvh - var(--safe-top) - var(--safe-bottom) - 46px) * 1.6));
     max-height: 100%;
     aspect-ratio: 16 / 10;
   }
@@ -1929,16 +2154,6 @@ footer a:focus-visible,
     box-shadow: var(--shadow-board), inset 0 1px 0 rgba(255,255,255,.07), inset 0 0 0 4px var(--bg-1);
   }
   .point { margin: 0; }
-  .point[role="button"]::after {
-    content: "";
-    position: absolute;
-    z-index: 4;
-    top: 0;
-    bottom: 0;
-    left: 50%;
-    width: 44px;
-    transform: translateX(-50%);
-  }
   .pt-num,
   .bar-lab,
   .off-name { font-size: 7px; }
@@ -1964,7 +2179,7 @@ footer a:focus-visible,
     display: flex;
     flex-direction: column;
     flex-wrap: nowrap;
-    overflow: auto;
+    overflow: hidden;
   }
   .players { width: 100%; min-width: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
   .pcard { min-width: 0; padding: 5px; gap: 4px; }
