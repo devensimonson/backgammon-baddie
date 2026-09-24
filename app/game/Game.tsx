@@ -528,9 +528,10 @@ export function Game() {
       const next = stageMove(game, staged, selected, to);
       if (!next) return;
       if (next.length >= maxPlayLength(game)) {
-        // The turn is complete: commit it and hand to the Baddie.
+        // The full legal play is staged. Keep it visible until the explicit
+        // End turn action commits once and hands control to The Baddie.
+        setStaged(next);
         setSelected(null);
-        commitHuman(next);
         return;
       }
       setStaged(next);
@@ -544,7 +545,7 @@ export function Game() {
         setSelected(null);
       }
     },
-    [game, selected, staged, commitHuman],
+    [game, selected, staged],
   );
 
   const onUndo = useCallback(() => {
@@ -587,13 +588,22 @@ export function Game() {
     setBaddieLine(voice.pick(game.toMove === HUMAN ? "yourRoll" : "baddieTurn"));
   }, [game, voice]);
 
-  const onShare = useCallback(() => {
+  const onShare = useCallback(async () => {
     const url =
       typeof window !== "undefined" ? window.location.href : "https://thebackgammonbaddie.com";
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
-      navigator.clipboard.writeText(url).catch(() => {});
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        await navigator.share({ title: "The Backgammon Baddie", url });
+        setToast("Shared. Rematch invited.");
+      } else if (typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(url);
+        setToast("Link copied. Send it to a friend.");
+      } else {
+        setToast("Sharing is not available here. Keep playing.");
+      }
+    } catch {
+      setToast("Share canceled. Your game is still here.");
     }
-    setToast("Link copied. Send it to a friend.");
   }, []);
 
   const onResetRecord = useCallback(() => {
@@ -873,11 +883,13 @@ export function Game() {
           rolling={dice.rolling}
           diceLabel={diceLabel}
           canRoll={canRoll}
+          canEndTurn={canInteract && staged.length >= (game ? maxPlayLength(game) : Infinity)}
           rollStatus={rollStatus}
           rollVariant={rollVariant}
           canUndo={canInteract && staged.length > 0}
           hint={hint}
           onRoll={onRoll}
+          onEndTurn={() => commitHuman(staged)}
           onUndo={onUndo}
         />
       </div>
@@ -897,12 +909,11 @@ export function Game() {
         </span>
       </footer>
 
-      <MobileGate />
-
       <div className={`toast${toast ? " show" : ""}`} role="status" aria-live="polite">
         <ShareIcon style={{ width: 16, height: 16 }} />
         <span>{toast}</span>
       </div>
+      <MobileGate />
     </div>
   );
 }
