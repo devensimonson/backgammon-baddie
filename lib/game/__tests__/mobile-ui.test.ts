@@ -49,12 +49,25 @@ describe("mobile play responsive contract", () => {
     expect(compact).toContain("height: 100dvh");
     expect(compact).toContain("overscroll-behavior: contain");
     expect(compact).toMatch(/\.point\[role="button"\]::after\s*{[\s\S]*?width: 44px/);
+    expect(compact).toMatch(/\.players\s*{[\s\S]*?height: 31px/);
+    expect(compact).toMatch(/\.hint\s*{[\s\S]*?overflow: hidden/);
+    expect(compact).toContain("-webkit-line-clamp: 2");
   });
 
   it("QA-25: wide phones retain a denser rail without reducing touch targets", () => {
-    expect(css).toContain("--compact-rail: clamp(156px, 22vw, 184px)");
-    expect(css).toContain(".legal { width: 44px; height: 44px");
-    expect(css).toContain(".btn { width: 100%; min-height: 44px");
+    const phone = cssBlock(
+      css,
+      "@media (orientation: landscape) and (max-width: 899px) and (max-height: 540px)",
+    );
+
+    expect(phone).toContain("--compact-rail: clamp(156px, 22vw, 184px)");
+    expect(phone).toContain(".legal { width: 44px; height: 44px");
+    expect(phone).toMatch(/\.btn\s*{[\s\S]*?height: 44px;[\s\S]*?min-height: 44px/);
+    expect(phone).toContain(".hint { display: none; }");
+    expect(phone).toMatch(/\.players\s*{[\s\S]*?height: 31px/);
+    expect(phone).toMatch(/\.pcard\.you\.active\s*{[\s\S]*?color: var\(--cyan\)/);
+    expect(phone).toMatch(/\.pcard\.bad\.active\s*{[\s\S]*?color: var\(--accent-soft\)/);
+    expect(dock).toContain('className="sr-only" aria-live="polite" aria-atomic="true"');
   });
 
   it("QA-22: keeps the New game control in the shared visible focus treatment", () => {

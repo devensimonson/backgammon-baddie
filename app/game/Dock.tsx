@@ -131,9 +131,12 @@ export function Dock({
         )}
       </div>
 
-      <div className="hint">
+      <div className="hint" aria-hidden="true">
         <HintIcon />
-        <span aria-live="polite">{hint}</span>
+        <span>{hint}</span>
+      </div>
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {hint}
       </div>
     </div>
   );
