@@ -21,6 +21,10 @@ function cssBlock(source: string, header: string): string {
   return "";
 }
 
+function isTabletLandscape(width: number, height: number): boolean {
+  return width <= 1366 && height >= 701 && height <= 900;
+}
+
 describe("mobile play responsive contract", () => {
   it("QA-01 / QA-02 / QA-04: gates phone portrait only and keeps landscape playable", () => {
     expect(css).toContain("(orientation: portrait) and (max-width: 640px)");
@@ -52,6 +56,45 @@ describe("mobile play responsive contract", () => {
     expect(compact).toMatch(/\.players\s*{[\s\S]*?height: 31px/);
     expect(compact).toMatch(/\.hint\s*{[\s\S]*?overflow: hidden/);
     expect(compact).toContain("-webkit-line-clamp: 2");
+  });
+
+  it("QA-26: tablet landscape has a bounded full-shell tier with exact breakpoint edges", () => {
+    const tablet = cssBlock(
+      css,
+      "@media (orientation: landscape) and (max-width: 1366px) and (min-height: 701px) and (max-height: 900px)",
+    );
+
+    expect(tablet).not.toBe("");
+    expect(tablet).toContain("height: 100dvh");
+    expect(tablet).toContain("overflow: hidden");
+    expect(tablet).toContain("--tablet-dock: 110px");
+    expect(tablet).toContain("--tablet-footer: 24px");
+    expect(tablet).toContain("640px");
+    expect(tablet).toContain("aspect-ratio: 16 / 10");
+    expect(tablet).toMatch(/\.dock\s*{[\s\S]*?grid-template-rows: 64px 24px/);
+    expect(tablet).toMatch(/\.btn\s*{[\s\S]*?min-height: 44px/);
+    expect(tablet).toMatch(/\.hint\s*{[\s\S]*?white-space: nowrap/);
+    expect(tablet).toMatch(/footer\s*{[\s\S]*?grid-row: 5/);
+
+    expect(isTabletLandscape(1180, 700)).toBe(false);
+    expect(isTabletLandscape(1180, 701)).toBe(true);
+    expect(isTabletLandscape(1180, 702)).toBe(true);
+    expect(isTabletLandscape(1180, 900)).toBe(true);
+    expect(isTabletLandscape(1180, 901)).toBe(false);
+    expect(isTabletLandscape(1180, 902)).toBe(false);
+    expect(isTabletLandscape(1365, 820)).toBe(true);
+    expect(isTabletLandscape(1366, 820)).toBe(true);
+    expect(isTabletLandscape(1367, 820)).toBe(false);
+
+    for (const [width, height] of [
+      [1180, 820],
+      [1024, 768],
+      [1194, 834],
+      [1366, 820],
+    ]) {
+      expect(isTabletLandscape(width, height)).toBe(true);
+    }
+    expect(isTabletLandscape(899, 540)).toBe(false);
   });
 
   it("QA-25: wide phones retain a denser rail without reducing touch targets", () => {
