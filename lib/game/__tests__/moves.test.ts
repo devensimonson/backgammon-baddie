@@ -57,6 +57,78 @@ describe("moves: staging matches the engine", () => {
     }
   });
 
+  it("QA-07: stages screenshot 8/6 then 13/8 when the engine canonicalizes an equivalent play", () => {
+    const points: Point[] = new Array(24).fill(null);
+    for (const [point, count] of [
+      [24, 2],
+      [13, 5],
+      [8, 2],
+      [6, 4],
+      [3, 2],
+    ] as const) {
+      points[point - 1] = { owner: "white", count };
+    }
+    for (const [point, count] of [
+      [23, 2],
+      [22, 2],
+      [19, 3],
+      [17, 1],
+      [12, 5],
+      [1, 2],
+    ] as const) {
+      points[point - 1] = { owner: "black", count };
+    }
+    const state: GameState = {
+      board: { points, bar: { white: 0, black: 0 }, off: { white: 0, black: 0 } },
+      toMove: "white",
+      phase: { kind: "moving", dice: [5, 2] },
+      cube: { value: 1, owner: "centered" },
+    };
+
+    const canonical = legalPlays(state).find(
+      (play) =>
+        play.some((move) => move.from === 13 && move.to === 11) &&
+        play.some((move) => move.from === 11 && move.to === 6),
+    );
+    expect(canonical).toBeDefined();
+    expect(legalPlays(state)).not.toContainEqual([
+      { from: 8, to: 6, die: 2 },
+      { from: 13, to: 8, die: 5 },
+    ]);
+
+    const sequences = [
+      [
+        [8, 6],
+        [13, 8],
+      ],
+      [
+        [13, 8],
+        [8, 6],
+      ],
+      [
+        [13, 11],
+        [11, 6],
+      ],
+    ] as const;
+
+    for (const sequence of sequences) {
+      let staged: Play = [];
+      for (const [from, to] of sequence) {
+        expect(movesFrom(state, from, staged)).toContain(to);
+        if (staged.length === 1 && from === 13 && to === 8) {
+          expect(stagingOptions(state, staged).get(13)).toContain(8);
+        }
+        const next = stageMove(state, staged, from, to);
+        expect(next, `staging ${from}/${to} after ${JSON.stringify(staged)}`).not.toBeNull();
+        staged = next as Play;
+      }
+      const committed = commitStaged(state, staged);
+      expect(committed).toEqual(canonical);
+      expect(legalPlays(state)).toContainEqual(committed);
+      expect(applyPlay(state, committed as Play).board).toEqual(applyPlay(state, staged).board);
+    }
+  });
+
   it("QA-13: a bear-off overshoot resolves to the larger die the engine charges", () => {
     // White: 14 borne off and one checker on point 2 (its highest home
     // point). A 5 overshoots and bears it off.

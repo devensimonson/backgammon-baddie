@@ -12,8 +12,8 @@
  * through `pointFor`, per the coordinate convention.
  */
 
-import { legalPlays, movesFrom, pointFor } from "../engine";
-import type { Die, GameState, HalfMove, Play } from "../engine";
+import { applyPlay, legalPlays, movesFrom, pointFor } from "../engine";
+import type { Die, GameState, Play } from "../engine";
 
 /** Every source a checker could move from: the bar, then points 1-24. */
 const ALL_SOURCES: readonly (number | "bar")[] = [
@@ -92,16 +92,21 @@ export function stageMove(
 }
 
 /**
- * The engine's own play that the staged half-moves add up to, matched by
- * its `from -> to` steps (dice ignored, since different bear-off dice
- * reach the same position and the engine dedupes them). This is what the
- * UI commits with `applyPlay`, keeping every committed turn engine-sourced.
+ * The engine's canonical play that reaches the staged play's resulting
+ * board. The engine accepts every legal ordering while `legalPlays`
+ * deduplicates equivalent results, so matching by result preserves both
+ * flexible staging and an engine-sourced commit.
  */
 export function commitStaged(game: GameState, staged: Play): Play | null {
-  const target = legalPlays(game).find(
-    (play) => play.length === staged.length && sameFromToMultiset(play, staged),
+  const stagedResult = appliedResult(game, staged);
+  if (stagedResult === null) return null;
+
+  return (
+    legalPlays(game).find((play) => {
+      const canonicalResult = appliedResult(game, play);
+      return canonicalResult !== null && sameBoard(canonicalResult.board, stagedResult.board);
+    }) ?? null
   );
-  return target ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -156,25 +161,36 @@ function exactDie(
 function isValidPrefix(game: GameState, seq: Play, maxLen: number): boolean {
   if (seq.length > maxLen) return false;
   if (seq.length === maxLen) {
-    return legalPlays(game).some(
-      (play) => play.length === seq.length && sameFromToMultiset(play, seq),
-    );
+    return appliedResult(game, seq) !== null;
   }
   return ALL_SOURCES.some((from) => movesFrom(game, from, seq).length > 0);
 }
 
-/** Do two plays use the same multiset of `from -> to` steps? */
-function sameFromToMultiset(a: Play, b: Play): boolean {
-  if (a.length !== b.length) return false;
-  const key = (m: HalfMove) => `${String(m.from)}>${String(m.to)}`;
-  const counts = new Map<string, number>();
-  for (const move of a) counts.set(key(move), (counts.get(key(move)) ?? 0) + 1);
-  for (const move of b) {
-    const k = key(move);
-    const n = counts.get(k);
-    if (n === undefined) return false;
-    if (n === 1) counts.delete(k);
-    else counts.set(k, n - 1);
+/** Ask the engine to validate and apply a complete staged turn. */
+function appliedResult(game: GameState, play: Play): GameState | null {
+  try {
+    return applyPlay(game, play);
+  } catch {
+    return null;
   }
-  return counts.size === 0;
+}
+
+/** Resulting-board equality mirrors the engine's position deduplication. */
+function sameBoard(a: GameState["board"], b: GameState["board"]): boolean {
+  if (
+    a.bar.white !== b.bar.white ||
+    a.bar.black !== b.bar.black ||
+    a.off.white !== b.off.white ||
+    a.off.black !== b.off.black ||
+    a.points.length !== b.points.length
+  ) {
+    return false;
+  }
+
+  return a.points.every((point, index) => {
+    const other = b.points[index];
+    return point === null
+      ? other === null
+      : other !== null && point.owner === other.owner && point.count === other.count;
+  });
 }
